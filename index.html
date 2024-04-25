@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        #map {
+            width: 1312px;
+            height: 860px;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="data/TemperatureoC_2.js"></script>
+        <script src="data/SAVI_3.js"></script>
+        <script src="data/NDVI_4.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+        }
+        var map = L.map('map', {
+            zoomControl:true, maxZoom:28, minZoom:1
+        }).fitBounds([[30.285329900671734,-97.7396429316837],[30.334670196063747,-97.65367220243323]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        document.querySelector(".leaflet-popup-pane").addEventListener("load", function(event) {
+          var tagName = event.target.tagName,
+            popup = map._popup;
+          // Also check if flag is already set.
+          if (tagName === "IMG" && popup && !popup._updated) {
+            popup._updated = true; // Set flag to prevent looping.
+            popup.update();
+          }
+        }, true);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0]
+        .innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0]
+        .className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_OpenStreetMap_0');
+        map.getPane('pane_OpenStreetMap_0').style.zIndex = 400;
+        var layer_OpenStreetMap_0 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OpenStreetMap_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OpenStreetMap_0;
+        map.addLayer(layer_OpenStreetMap_0);
+        map.createPane('pane_TrueColourRGB_1');
+        map.getPane('pane_TrueColourRGB_1').style.zIndex = 401;
+        var img_TrueColourRGB_1 = 'data/TrueColourRGB_1.png';
+        var img_bounds_TrueColourRGB_1 = [[30.291709595142645,-97.722597679828],[30.33090394306123,-97.67279822971037]];
+        var layer_TrueColourRGB_1 = new L.imageOverlay(img_TrueColourRGB_1,
+                                              img_bounds_TrueColourRGB_1,
+                                              {pane: 'pane_TrueColourRGB_1'});
+        bounds_group.addLayer(layer_TrueColourRGB_1);
+        map.addLayer(layer_TrueColourRGB_1);
+        function pop_TemperatureoC_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Temp'] !== null ? autolinker.link(feature.properties['Temp'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_TemperatureoC_2_0(feature) {
+            if (feature.properties['Temp'] >= 35.000000 && feature.properties['Temp'] <= 36.666667 ) {
+                return {
+                pane: 'pane_TemperatureoC_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(43,131,186,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['Temp'] >= 36.666667 && feature.properties['Temp'] <= 38.333333 ) {
+                return {
+                pane: 'pane_TemperatureoC_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(145,203,168,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['Temp'] >= 38.333333 && feature.properties['Temp'] <= 40.000000 ) {
+                return {
+                pane: 'pane_TemperatureoC_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(221,241,180,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['Temp'] >= 40.000000 && feature.properties['Temp'] <= 41.666667 ) {
+                return {
+                pane: 'pane_TemperatureoC_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,223,153,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['Temp'] >= 41.666667 && feature.properties['Temp'] <= 43.333333 ) {
+                return {
+                pane: 'pane_TemperatureoC_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(245,144,83,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['Temp'] >= 43.333333 && feature.properties['Temp'] <= 45.000000 ) {
+                return {
+                pane: 'pane_TemperatureoC_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(215,25,28,1.0)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_TemperatureoC_2');
+        map.getPane('pane_TemperatureoC_2').style.zIndex = 402;
+        map.getPane('pane_TemperatureoC_2').style['mix-blend-mode'] = 'normal';
+        var layer_TemperatureoC_2 = new L.geoJson(json_TemperatureoC_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_TemperatureoC_2',
+            layerName: 'layer_TemperatureoC_2',
+            pane: 'pane_TemperatureoC_2',
+            onEachFeature: pop_TemperatureoC_2,
+            style: style_TemperatureoC_2_0,
+        });
+        bounds_group.addLayer(layer_TemperatureoC_2);
+        map.addLayer(layer_TemperatureoC_2);
+        function pop_SAVI_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['DN'] !== null ? autolinker.link(feature.properties['DN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['SAVI'] !== null ? autolinker.link(feature.properties['SAVI'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_SAVI_3_0(feature) {
+            if (feature.properties['SAVI'] >= 0.000000 && feature.properties['SAVI'] <= 0.130000 ) {
+                return {
+                pane: 'pane_SAVI_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(68,1,84,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['SAVI'] >= 0.130000 && feature.properties['SAVI'] <= 0.190000 ) {
+                return {
+                pane: 'pane_SAVI_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(70,50,127,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['SAVI'] >= 0.190000 && feature.properties['SAVI'] <= 0.250000 ) {
+                return {
+                pane: 'pane_SAVI_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(54,92,141,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['SAVI'] >= 0.250000 && feature.properties['SAVI'] <= 0.310000 ) {
+                return {
+                pane: 'pane_SAVI_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(39,127,142,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['SAVI'] >= 0.310000 && feature.properties['SAVI'] <= 0.360000 ) {
+                return {
+                pane: 'pane_SAVI_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(31,162,136,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['SAVI'] >= 0.360000 && feature.properties['SAVI'] <= 0.410000 ) {
+                return {
+                pane: 'pane_SAVI_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(74,194,109,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['SAVI'] >= 0.410000 && feature.properties['SAVI'] <= 0.480000 ) {
+                return {
+                pane: 'pane_SAVI_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(158,217,58,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['SAVI'] >= 0.480000 && feature.properties['SAVI'] <= 0.710000 ) {
+                return {
+                pane: 'pane_SAVI_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(253,231,37,1.0)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_SAVI_3');
+        map.getPane('pane_SAVI_3').style.zIndex = 403;
+        map.getPane('pane_SAVI_3').style['mix-blend-mode'] = 'normal';
+        var layer_SAVI_3 = new L.geoJson(json_SAVI_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_SAVI_3',
+            layerName: 'layer_SAVI_3',
+            pane: 'pane_SAVI_3',
+            onEachFeature: pop_SAVI_3,
+            style: style_SAVI_3_0,
+        });
+        bounds_group.addLayer(layer_SAVI_3);
+        map.addLayer(layer_SAVI_3);
+        function pop_NDVI_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(feature.properties['fid'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['DN'] !== null ? autolinker.link(feature.properties['DN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NDVI'] !== null ? autolinker.link(feature.properties['NDVI'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_NDVI_4_0(feature) {
+            if (feature.properties['NDVI'] >= 0.000000 && feature.properties['NDVI'] <= 0.210000 ) {
+                return {
+                pane: 'pane_NDVI_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(68,1,84,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NDVI'] >= 0.210000 && feature.properties['NDVI'] <= 0.270000 ) {
+                return {
+                pane: 'pane_NDVI_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(71,40,120,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NDVI'] >= 0.270000 && feature.properties['NDVI'] <= 0.330000 ) {
+                return {
+                pane: 'pane_NDVI_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(62,74,137,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NDVI'] >= 0.330000 && feature.properties['NDVI'] <= 0.390000 ) {
+                return {
+                pane: 'pane_NDVI_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(49,104,142,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NDVI'] >= 0.390000 && feature.properties['NDVI'] <= 0.450000 ) {
+                return {
+                pane: 'pane_NDVI_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(38,131,142,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NDVI'] >= 0.450000 && feature.properties['NDVI'] <= 0.500000 ) {
+                return {
+                pane: 'pane_NDVI_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(30,158,137,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NDVI'] >= 0.500000 && feature.properties['NDVI'] <= 0.560000 ) {
+                return {
+                pane: 'pane_NDVI_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(53,183,121,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NDVI'] >= 0.560000 && feature.properties['NDVI'] <= 0.610000 ) {
+                return {
+                pane: 'pane_NDVI_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(108,206,89,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NDVI'] >= 0.610000 && feature.properties['NDVI'] <= 0.670000 ) {
+                return {
+                pane: 'pane_NDVI_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(180,222,44,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NDVI'] >= 0.670000 && feature.properties['NDVI'] <= 0.950000 ) {
+                return {
+                pane: 'pane_NDVI_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(253,231,37,1.0)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_NDVI_4');
+        map.getPane('pane_NDVI_4').style.zIndex = 404;
+        map.getPane('pane_NDVI_4').style['mix-blend-mode'] = 'normal';
+        var layer_NDVI_4 = new L.geoJson(json_NDVI_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_NDVI_4',
+            layerName: 'layer_NDVI_4',
+            pane: 'pane_NDVI_4',
+            onEachFeature: pop_NDVI_4,
+            style: style_NDVI_4_0,
+        });
+        bounds_group.addLayer(layer_NDVI_4);
+        map.addLayer(layer_NDVI_4);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var baseMaps = {};
+        var overlaysTree = [
+            {label: 'NDVI<br /><table><tr><td style="text-align: center;"><img src="legend/NDVI_4_00210.png" /></td><td>0 - 0.21</td></tr><tr><td style="text-align: center;"><img src="legend/NDVI_4_0210271.png" /></td><td>0.21 - 0.27</td></tr><tr><td style="text-align: center;"><img src="legend/NDVI_4_0270332.png" /></td><td>0.27 - 0.33</td></tr><tr><td style="text-align: center;"><img src="legend/NDVI_4_0330393.png" /></td><td>0.33 - 0.39</td></tr><tr><td style="text-align: center;"><img src="legend/NDVI_4_0390454.png" /></td><td>0.39 - 0.45</td></tr><tr><td style="text-align: center;"><img src="legend/NDVI_4_045055.png" /></td><td>0.45 - 0.5</td></tr><tr><td style="text-align: center;"><img src="legend/NDVI_4_050566.png" /></td><td>0.5 - 0.56</td></tr><tr><td style="text-align: center;"><img src="legend/NDVI_4_0560617.png" /></td><td>0.56 - 0.61</td></tr><tr><td style="text-align: center;"><img src="legend/NDVI_4_0610678.png" /></td><td>0.61 - 0.67</td></tr><tr><td style="text-align: center;"><img src="legend/NDVI_4_0670959.png" /></td><td>0.67 - 0.95</td></tr></table>', layer: layer_NDVI_4},
+            {label: 'SAVI<br /><table><tr><td style="text-align: center;"><img src="legend/SAVI_3_00130.png" /></td><td>0 - 0.13</td></tr><tr><td style="text-align: center;"><img src="legend/SAVI_3_0130191.png" /></td><td>0.13 - 0.19</td></tr><tr><td style="text-align: center;"><img src="legend/SAVI_3_0190252.png" /></td><td>0.19 - 0.25</td></tr><tr><td style="text-align: center;"><img src="legend/SAVI_3_0250313.png" /></td><td>0.25 - 0.31</td></tr><tr><td style="text-align: center;"><img src="legend/SAVI_3_0310364.png" /></td><td>0.31 - 0.36</td></tr><tr><td style="text-align: center;"><img src="legend/SAVI_3_0360415.png" /></td><td>0.36 - 0.41</td></tr><tr><td style="text-align: center;"><img src="legend/SAVI_3_0410486.png" /></td><td>0.41 - 0.48</td></tr><tr><td style="text-align: center;"><img src="legend/SAVI_3_0480717.png" /></td><td>0.48 - 0.71</td></tr></table>', layer: layer_SAVI_3},
+            {label: 'Temperature oC<br /><table><tr><td style="text-align: center;"><img src="legend/TemperatureoC_2_353670.png" /></td><td>35 - 36.7</td></tr><tr><td style="text-align: center;"><img src="legend/TemperatureoC_2_3673831.png" /></td><td>36.7 - 38.3</td></tr><tr><td style="text-align: center;"><img src="legend/TemperatureoC_2_383402.png" /></td><td>38.3 - 40</td></tr><tr><td style="text-align: center;"><img src="legend/TemperatureoC_2_404173.png" /></td><td>40 - 41.7</td></tr><tr><td style="text-align: center;"><img src="legend/TemperatureoC_2_4174334.png" /></td><td>41.7 - 43.3</td></tr><tr><td style="text-align: center;"><img src="legend/TemperatureoC_2_433455.png" /></td><td>43.3 - 45</td></tr></table>', layer: layer_TemperatureoC_2},
+            {label: "True Colour RGB", layer: layer_TrueColourRGB_1},
+            {label: "OpenStreetMap", layer: layer_OpenStreetMap_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: false, 
+        });
+        lay.addTo(map);
+        setBounds();
+        L.ImageOverlay.include({
+            getBounds: function () {
+                return this._bounds;
+            }
+        });
+        </script>
+    </body>
+</html>
